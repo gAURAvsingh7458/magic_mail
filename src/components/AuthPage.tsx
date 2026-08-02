@@ -35,7 +35,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
       }
     } catch (err: any) {
       console.error('Google Auth Error:', err);
-      setError(err.message || 'Google Sign In failed. Please try again or use Demo mode.');
+      if (err?.code === 'auth/unauthorized-domain' || err?.message?.includes('unauthorized-domain')) {
+        const domain = typeof window !== 'undefined' ? window.location.hostname : 'your domain';
+        setError(`Domain not authorized for Google Sign-In: "${domain}". Please add this domain to Firebase Console -> Authentication -> Settings -> Authorized domains.`);
+      } else {
+        setError(err.message || 'Google Sign In failed. Please try again or use Demo mode.');
+      }
     } finally {
       setIsGoogleLoading(false);
     }
