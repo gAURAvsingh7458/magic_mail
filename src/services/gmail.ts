@@ -195,24 +195,15 @@ export async function sendGmailEmail(
   }
 }
 
-export async function archiveGmailMessage(
-  accessToken: string,
-  messageId: string,
-  archive: boolean = true
-): Promise<void> {
-  const res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/modify`, {
+export async function archiveGmailMessage(accessToken: string, messageId: string): Promise<void> {
+  await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/modify`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(
-      archive ? { removeLabelIds: ['INBOX'] } : { addLabelIds: ['INBOX'] }
-    ),
+    body: JSON.stringify({
+      removeLabelIds: ['INBOX'],
+    }),
   });
-
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.error?.message || 'Failed to update Gmail message labels');
-  }
 }

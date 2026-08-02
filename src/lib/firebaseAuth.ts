@@ -37,7 +37,6 @@ export const googleSignIn = async (): Promise<{ user: User; accessToken: string 
     isSigningIn = true;
     const result = await signInWithPopup(auth, provider);
     const credential = GoogleAuthProvider.credentialFromResult(result);
-    
     if (!credential?.accessToken) {
       throw new Error('Failed to get Google OAuth access token from sign in');
     }

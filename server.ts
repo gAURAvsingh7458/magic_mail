@@ -9,7 +9,7 @@ import { Email, UserPreferences, AnalyticsData, PriorityLevel, EmailCategory, Se
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+const PORT = 3000;
 
 app.use(express.json({ limit: '10mb' }));
 
