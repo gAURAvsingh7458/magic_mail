@@ -44,23 +44,33 @@ export default function App() {
   });
 
   useEffect(() => {
-    initAuth(
-      (user, token) => {
-        setIsAuthenticated(true);
-        setIsGmailConnected(true);
-        if (!currentUser && user) {
-          setCurrentUser({
-            name: user.displayName || 'Gmail User',
-            email: user.email || 'user@gmail.com',
-            title: 'Executive User',
-            company: 'Google Workspace',
-          });
+    let unsubscribe: (() => void) | undefined;
+
+    const setup = async () => {
+      unsubscribe = initAuth(
+        (user, token) => {
+          setIsAuthenticated(true);
+          setIsGmailConnected(true);
+          if (!currentUser && user) {
+            setCurrentUser({
+              name: user.displayName || 'Gmail User',
+              email: user.email || 'user@gmail.com',
+              title: 'Executive User',
+              company: 'Google Workspace',
+            });
+          }
+        },
+        () => {
+          setIsGmailConnected(false);
         }
-      },
-      () => {
-        setIsGmailConnected(false);
-      }
-    );
+      );
+    };
+
+    setup();
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   const [emails, setEmails] = useState<Email[]>([]);
@@ -295,6 +305,20 @@ export default function App() {
         setSelectedEmailId(remaining[0].id);
       } else {
         setSelectedEmailId(null);
+      }
+    }
+
+    // If this email came from the user's real Gmail inbox, mirror the archive/unarchive
+    // action there too. Without this, the message keeps its INBOX label in real Gmail and
+    // pops right back into the list the next time the inbox is re-synced.
+    if (target.tags?.includes('Live Gmail')) {
+      const token = getAccessToken();
+      if (token) {
+        try {
+          await archiveGmailMessage(token, id, updatedArchived);
+        } catch (gErr) {
+          console.warn('Gmail archive sync failed:', gErr);
+        }
       }
     }
 
@@ -556,6 +580,16 @@ export default function App() {
           await sendGmailEmail(token, recipientEmail, subject, replyText);
         } catch (gReplyErr) {
           console.warn('Gmail API direct reply error:', gReplyErr);
+        }
+
+        // Also archive the real Gmail message so it doesn't reappear in the live
+        // Inbox after a refresh, even though we mark it archived locally below.
+        if (targetEmail?.tags?.includes('Live Gmail')) {
+          try {
+            await archiveGmailMessage(token, emailId, true);
+          } catch (gArchiveErr) {
+            console.warn('Gmail archive-after-send sync failed:', gArchiveErr);
+          }
         }
       }
 

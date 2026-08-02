@@ -1,5 +1,6 @@
 import express from 'express';
 import path from 'path';
+import fs from 'fs';
 import dotenv from 'dotenv';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI, Type, Modality } from '@google/genai';
@@ -9,7 +10,7 @@ import { Email, UserPreferences, AnalyticsData, PriorityLevel, EmailCategory, Se
 dotenv.config();
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT && !isNaN(Number(process.env.PORT)) ? Number(process.env.PORT) : 3000;
 
 app.use(express.json({ limit: '10mb' }));
 
@@ -664,23 +665,35 @@ REQUIREMENTS:
 // -------------------------------------------------------------
 
 async function startServer() {
-  if (process.env.NODE_ENV !== 'production') {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
-  } else {
+  try {
     const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
-  }
+    const hasDist = fs.existsSync(path.join(distPath, 'index.html'));
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[Email Triage AI] Server running on http://localhost:${PORT}`);
-  });
+    if (process.env.NODE_ENV === 'production' || hasDist) {
+      console.log(`[Email Triage AI] Serving production build from ${distPath}`);
+      app.use(express.static(distPath));
+      app.get('*', (req, res) => {
+        res.sendFile(path.join(distPath, 'index.html'));
+      });
+    } else {
+      console.log('[Email Triage AI] Starting Vite dev middleware...');
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: 'spa',
+      });
+      app.use(vite.middlewares);
+    }
+
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`[Email Triage AI] Server running on http://0.0.0.0:${PORT}`);
+    });
+  } catch (err) {
+    console.error('[Email Triage AI] Failed to start server:', err);
+    process.exit(1);
+  }
 }
 
-startServer();
+startServer().catch((err) => {
+  console.error('[Email Triage AI] Unhandled error during server startup:', err);
+  process.exit(1);
+});
