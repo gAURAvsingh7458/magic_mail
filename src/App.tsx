@@ -16,7 +16,7 @@ import { AuthPage } from './components/AuthPage';
 import { VoiceMailboxHub } from './components/VoiceMailboxHub';
 import { playPcmAudio, fallbackWebSpeech } from './utils/audio';
 import { DEFAULT_CONTACT_ALIASES } from './utils/contacts';
-import { initAuth, getAccessToken, logoutGoogle, checkRedirectResult } from './lib/firebaseAuth';
+import { initAuth, getAccessToken, logoutGoogle } from './lib/firebaseAuth';
 import { fetchLiveGmailMessages, sendGmailEmail, archiveGmailMessage } from './services/gmail';
 
 export default function App() {
@@ -47,22 +47,6 @@ export default function App() {
     let unsubscribe: (() => void) | undefined;
 
     const setup = async () => {
-      try {
-        const redirectResult = await checkRedirectResult();
-        if (redirectResult?.user) {
-          setIsAuthenticated(true);
-          setIsGmailConnected(true);
-          setCurrentUser({
-            name: redirectResult.user.displayName || redirectResult.user.email?.split('@')[0] || 'Gmail User',
-            email: redirectResult.user.email || 'user@gmail.com',
-            title: 'Executive User',
-            company: 'Google Workspace',
-          });
-        }
-      } catch (err) {
-        console.error('Google redirect sign-in error:', err);
-      }
-
       unsubscribe = initAuth(
         (user, token) => {
           setIsAuthenticated(true);

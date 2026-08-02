@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, User } from 'firebase/auth';
+import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, User } from 'firebase/auth';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
@@ -33,20 +33,11 @@ export const initAuth = (
 };
 
 export const googleSignIn = async (): Promise<{ user: User; accessToken: string } | null> => {
-  // signInWithRedirect navigates the whole page to Google and back, so this
-  // function does not return a result directly. Call checkRedirectResult()
-  // on app startup to pick up the result after the redirect completes.
-  isSigningIn = true;
-  await signInWithRedirect(auth, provider);
-  return null;
-};
-
-export const checkRedirectResult = async (): Promise<{ user: User; accessToken: string } | null> => {
   try {
-    const result = await getRedirectResult(auth);
-    if (!result) return null;
-
+    isSigningIn = true;
+    const result = await signInWithPopup(auth, provider);
     const credential = GoogleAuthProvider.credentialFromResult(result);
+    
     if (!credential?.accessToken) {
       throw new Error('Failed to get Google OAuth access token from sign in');
     }
